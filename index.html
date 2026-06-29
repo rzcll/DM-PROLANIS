@@ -305,7 +305,7 @@
             if(type === 'LAB'){
                 const allRows = data.flatMap(f => f.data);
                 const excelData = allRows.map(row => {
-                    const outputRow = { 'Nama Pasien': row.Data_Pasien, 'NIK': row.Data_D, 'No BPJS': row.Data_R };
+                    const outputRow = { 'NIK': row.Data_Pasien, 'Nama Pasien': row.Data_D, 'No BPJS': row.Data_R };
                     months.forEach(m => outputRow[m] = row[m] || "");
                     return outputRow;
                 });
