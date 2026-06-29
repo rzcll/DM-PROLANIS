@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMART DM - Profesional</title>
+    <title>SMART DM - Validasi Terintegrasi</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <!-- Import Map -->
     <script type="importmap">
     {
       "imports": {
@@ -22,13 +19,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        body { margin: 0; background-color: #f1f5f9; color: #1e293b; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; background-color: #f1f5f9; color: #1e293b; font-family: ui-sans-serif, system-ui, sans-serif; }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Custom Shadow Panel */
         .surface-panel { 
             background: #ffffff; 
             border: 1px solid #e2e8f0; 
@@ -36,7 +32,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+<body class="bg-slate-50 min-h-screen text-slate-800 antialiased selection:bg-indigo-100">
     <div id="root"></div>
     
     <script type="text/babel" data-type="module">
@@ -45,7 +41,7 @@
         import { 
           Upload, FileSpreadsheet, Download, FileText, FolderOpen, 
           Database, Activity, Loader2, Info, LayoutDashboard, CheckCircle2, 
-          Stethoscope, Users, BarChart3, AlertCircle, LogIn, User, ChevronRight
+          Stethoscope, Users, BarChart3, AlertCircle, LogIn, User
         } from 'lucide-react';
 
         const App = () => {
@@ -53,6 +49,7 @@
           const [activeUser, setActiveUser] = useState('');
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [loginError, setLoginError] = useState('');
+          const [uploadErrors, setUploadErrors] = useState([]); // State untuk menampung error validasi D3
 
           const [labFilesData, setLabFilesData] = useState([]);
           const [prolanisFilesData, setProlanisFilesData] = useState([]);
@@ -88,7 +85,7 @@
             }
           }, [labFilesData, prolanisFilesData]);
 
-          // PROSES PENGIRIMAN DATA KE GOOGLE APPS SCRIPT API
+          // PROSES LOGIN DENGAN VALIDASI DATABASE SPREADSHEET
           const handleLoginSubmit = async (e) => {
             e.preventDefault();
             if (!inputUsername.trim()) {
@@ -102,7 +99,7 @@
             // =========================================================
             // GANTI DENGAN URL WEB APP GOOGLE SCRIPT ANDA DI BAWAH INI
             // =========================================================
-            const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw-E47H0-c-AnIGuVAyx3YGdERYf4jkMqYA8xdpxm83JOq8SeDxaCcVR1MwGt-cprQK/exec';
+            const GAS_WEB_APP_URL = 'PASTE_URL_WEB_APP_ANDA_DISINI';
 
             if (GAS_WEB_APP_URL === 'PASTE_URL_WEB_APP_ANDA_DISINI') {
               setIsProcessing(false);
@@ -113,24 +110,22 @@
             try {
               const response = await fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'text/plain;charset=utf-8', 
-                },
-                body: JSON.stringify({ username: inputUsername })
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'login', username: inputUsername })
               });
 
               const result = await response.json();
-              
               setIsProcessing(false);
+              
               if (result.success) {
                 setActiveUser(inputUsername);
                 setIsLoggedIn(true);
               } else {
-                setLoginError('Gagal menyimpan sesi: ' + result.error);
+                setLoginError(result.error);
               }
             } catch (err) {
               setIsProcessing(false);
-              setLoginError('Gagal menghubungi database Google Spreadsheet. Pastikan URL benar.');
+              setLoginError('Gagal menghubungi server database Google Spreadsheet.');
             }
           };
 
@@ -191,6 +186,20 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = window.XLSX.read(data, { type: 'array', cellDates: true, cellText: true });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // VALIDASI BARU: Cek Sel D3 (Baris ke-3 Kolom D -> r:2, c:3)
+                const cellD3 = String(getCellValue(sheet, 2, 3)).toLowerCase();
+                const currentAccount = inputUsername.toLowerCase();
+                
+                // Jika isi D3 tidak mengandung nama akun, kirim penanda error gagal upload
+                if (!cellD3.includes(currentAccount)) {
+                  resolve({ 
+                    fileName: file.name, 
+                    error: `Gagal Upload [${file.name}]: Identitas instansi pada sel D3 ("${cellD3 || 'Kosong'}") tidak mengandung kata kunci akun Anda ("${inputUsername}").` 
+                  });
+                  return;
+                }
+
                 const range = window.XLSX.utils.decode_range(sheet['!ref']);
                 const mergedData = new Map();
 
@@ -207,10 +216,7 @@
 
                     if (!mergedData.has(bpjsKey)) {
                       const newRow = {
-                        'Baris': r + 1,
-                        'Data_Pasien': String(rawF || "-"),
-                        'Data_D': String(rawD || "-"),
-                        'Data_R': String(rawR || "-")
+                        'Baris': r + 1, 'Data_Pasien': String(rawF || "-"), 'Data_D': String(rawD || "-"), 'Data_R': String(rawR || "-")
                       };
                       months.forEach(m => newRow[m] = ""); 
                       mergedData.set(bpjsKey, newRow);
@@ -265,12 +271,24 @@
             const files = Array.from(e.target.files);
             if (!files.length) return;
             setIsProcessing(true);
+            setUploadErrors([]); // Reset log error unggahan
+            
             try {
               const processor = type === 'LAB' ? processLabFile : processProlanisFile;
               const results = await Promise.all(files.filter(f => f.name.match(/\.(xlsx|xls|csv)$/i)).map(processor));
               
               if (type === 'LAB') {
-                setLabFilesData(prev => [...prev, ...results]);
+                // Kumpulkan pesan jika ada file yang gagal validasi D3
+                const errorsFound = results.filter(r => r.error).map(r => r.error);
+                const validResults = results.filter(r => !r.error);
+                
+                if (errorsFound.length > 0) {
+                  setUploadErrors(errorsFound);
+                  setIsProcessing(false);
+                  return; // Hentikan alur, jangan masuk ke tab Prolanis
+                }
+                
+                setLabFilesData(prev => [...prev, ...validResults]);
                 setActiveTab('PROLANIS'); 
               } else {
                 setProlanisFilesData(prev => [...prev, ...results]);
@@ -312,9 +330,6 @@
 
           const getTotalRows = (dataArray) => dataArray.reduce((acc, file) => acc + file.data.length, 0);
 
-          // ==========================================
-          // 1. TAMPILAN JIKA BELUM LOGIN (LIGHT THEME)
-          // ==========================================
           if (!isLoggedIn) {
             return (
               <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100">
@@ -350,10 +365,7 @@
                       </div>
                     )}
 
-                    <button 
-                      type="submit" 
-                      className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
-                    >
+                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20">
                       <LogIn size={18} /> Masuk ke Aplikasi
                     </button>
                   </form>
@@ -362,24 +374,20 @@
                 {isProcessing && (
                   <div className="fixed inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center text-slate-800">
                     <Loader2 className="w-16 h-16 text-indigo-600 animate-spin mb-4" />
-                    <h2 className="text-xl font-bold tracking-widest uppercase text-slate-800 mb-1">Menghubungkan</h2>
-                    <p className="text-slate-500 text-sm font-medium">Memverifikasi sesi Anda...</p>
+                    <h2 className="text-xl font-bold tracking-widest uppercase mb-1">Verifikasi</h2>
+                    <p className="text-slate-500 text-sm font-medium">Memeriksa database sheet Log_User...</p>
                   </div>
                 )}
               </div>
             );
           }
 
-          // ==========================================
-          // 2. TAMPILAN UTAMA JIKA SUDAH LOGIN (LIGHT THEME)
-          // ==========================================
           return (
             <div className="pb-24 font-sans text-slate-700">
-              {/* NAVBAR */}
               <nav className="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="bg-indigo-600 p-2.5 rounded-xl shadow-md shadow-indigo-600/20">
+                    <div className="bg-indigo-600 p-2.5 rounded-xl shadow-md">
                       <Stethoscope className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -388,7 +396,6 @@
                     </div>
                   </div>
                   
-                  {/* Menu Tabs dengan Shadow */}
                   <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 shadow-inner">
                     {[
                       { id: 'LAB', icon: Database, label: '1. Data Lab' },
@@ -409,29 +416,38 @@
               </nav>
 
               <main className="max-w-7xl mx-auto px-6 pt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
-                {/* TAB 1: LAB */}
                 {activeTab === 'LAB' && (
-                  <div className="max-w-3xl mx-auto">
+                  <div className="max-w-3xl mx-auto space-y-6">
                     <div className="surface-panel p-10 rounded-[2rem] text-center">
                       <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100">
                         <Database className="w-10 h-10 text-indigo-600" />
                       </div>
                       <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Langkah 1: Upload Data Lab</h2>
-                      <p className="text-slate-500 mb-10 text-sm leading-relaxed font-medium">Unggah folder rekapitulasi laboratorium. Sistem otomatis mengeliminasi duplikat BPJS, menggabungkan capaian bulan Januari-Desember, dan mengalihkan ke menu Prolanis.</p>
+                      <p className="text-slate-500 mb-10 text-sm leading-relaxed font-medium">Unggah folder laboratorium. Sistem otomatis mengeliminasi duplikat BPJS dan mencocokkan identitas file pada sel D3 dengan kata kunci nama akun Anda.</p>
                       
                       <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50 transition-all duration-300 rounded-[2rem] p-12 cursor-pointer shadow-sm">
                         <div className="flex flex-col items-center gap-5">
                           <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                          <div className="bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">Pilih Folder Lab</div>
+                          <div className="bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg">Pilih Folder Lab</div>
                         </div>
                         <input type="file" multiple webkitdirectory="true" className="hidden" onChange={(e) => handleUpload(e, 'LAB')} />
                       </label>
                     </div>
+
+                    {/* MENAMPILKAN LOG ERROR GAGAL UPLOAD SEL D3 */}
+                    {uploadErrors.length > 0 && (
+                      <div className="surface-panel p-6 rounded-2xl border-l-4 border-l-red-500 bg-red-50/30 space-y-2">
+                        <h4 className="font-extrabold text-red-700 flex items-center gap-2 text-sm">
+                          <AlertCircle size={18} /> Berkas Gagal Diunggah:
+                        </h4>
+                        <ul className="list-disc pl-5 space-y-1 text-xs text-red-600 font-medium">
+                          {uploadErrors.map((err, idx) => <li key={idx}>{err}</li>)}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* TAB 2: PROLANIS */}
                 {activeTab === 'PROLANIS' && (
                   <div className="max-w-3xl mx-auto">
                     <div className="surface-panel p-10 rounded-[2rem] text-center">
@@ -441,10 +457,10 @@
                       <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Langkah 2: Upload Data Prolanis</h2>
                       <p className="text-slate-500 mb-10 text-sm leading-relaxed font-medium">Unggah folder Prolanis untuk memfilter data Lab (8 digit BPJS terakhir). Sistem juga menghapus duplikat data berdasarkan kolom NIK.</p>
                       
-                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50 transition-all duration-300 rounded-[2rem] p-12 cursor-pointer shadow-sm">
+                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-indigo-50 transition-all duration-300 rounded-[2rem] p-12 cursor-pointer shadow-sm">
                         <div className="flex flex-col items-center gap-5">
                           <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                          <div className="bg-emerald-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-colors">Pilih Folder Prolanis</div>
+                          <div className="bg-emerald-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg">Pilih Folder Prolanis</div>
                         </div>
                         <input type="file" multiple webkitdirectory="true" className="hidden" onChange={(e) => handleUpload(e, 'PROLANIS')} />
                       </label>
@@ -452,10 +468,8 @@
                   </div>
                 )}
 
-                {/* TAB 3: DASHBOARD */}
                 {activeTab === 'DASHBOARD' && (
                   <div className="space-y-6">
-                    {/* Ringkasan Panel (Summary) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="surface-panel p-6 rounded-2xl flex items-center gap-5">
                         <div className="bg-slate-100 p-4 rounded-xl border border-slate-200"><FileText className="w-7 h-7 text-slate-500" /></div>
@@ -473,46 +487,41 @@
                       </div>
                       <div className="bg-white p-6 rounded-2xl border-2 border-indigo-100 shadow-xl flex items-center gap-5 relative overflow-hidden">
                         <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                        <div className="bg-indigo-100 p-4 rounded-xl border border-indigo-200 relative z-10"><CheckCircle2 className="w-7 h-7 text-indigo-600" /></div>
-                        <div className="relative z-10">
+                        <div className="bg-indigo-100 p-4 rounded-xl border border-indigo-200"><CheckCircle2 className="w-7 h-7 text-indigo-600" /></div>
+                        <div>
                           <p className="text-sm font-bold text-indigo-600 uppercase tracking-wide">Data Tervalidasi</p>
                           <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(filteredLabData)}</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Baris Informasi & Unduh */}
                     <div className="surface-panel p-6 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-6">
                       <div className="flex items-start gap-4">
-                        <div className="bg-blue-50 p-2.5 rounded-xl shrink-0 mt-0.5 border border-blue-100"><Info className="w-5 h-5 text-blue-600" /></div>
+                        <div className="bg-blue-50 p-2.5 rounded-xl shrink-0 border border-blue-100"><Info className="w-5 h-5 text-blue-600" /></div>
                         <p className="text-sm text-slate-600 leading-relaxed max-w-2xl font-medium">
-                          Hasil rekapitulasi data gabungan terfilter. Sesi pengerjaan ini dicatat secara otomatis atas nama pengguna: <strong className="text-indigo-700">{activeUser}</strong>.
+                          Hasil rekapitulasi terfilter. File telah diverifikasi menggunakan akun: <strong className="text-indigo-700">{activeUser}</strong>.
                         </p>
                       </div>
                       <div className="flex gap-4 w-full lg:w-auto">
-                        <button onClick={() => downloadFile(filteredLabData, 'LAB')} disabled={filteredLabData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 whitespace-nowrap transition-all">
+                        <button onClick={() => downloadFile(filteredLabData, 'LAB')} disabled={filteredLabData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg whitespace-nowrap transition-all">
                           <Download size={16} /> Unduh Rekap Lab
                         </button>
-                        <button onClick={() => downloadFile(prolanisFilesData, 'PROLANIS')} disabled={prolanisFilesData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/20 whitespace-nowrap transition-all">
+                        <button onClick={() => downloadFile(prolanisFilesData, 'PROLANIS')} disabled={prolanisFilesData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg whitespace-nowrap transition-all">
                           <Download size={16} /> Unduh Prolanis
                         </button>
                       </div>
                     </div>
 
-                    {/* Tabel */}
                     {filteredLabData.length === 0 ? (
                       <div className="surface-panel py-24 flex flex-col items-center justify-center text-center rounded-[2rem]">
-                        <div className="bg-slate-100 p-6 rounded-full mb-6">
-                            <AlertCircle className="w-12 h-12 text-slate-400" />
-                        </div>
+                        <div className="bg-slate-100 p-6 rounded-full mb-6"><AlertCircle className="w-12 h-12 text-slate-400" /></div>
                         <h3 className="text-xl font-extrabold text-slate-800 mb-2">Belum Ada Data Tersedia</h3>
-                        <p className="text-slate-500 text-sm font-medium">Pastikan Anda telah mengunggah file Lab dan Prolanis yang valid.</p>
+                        <p className="text-slate-500 text-sm font-medium">Pastikan Anda telah mengunggah file Lab dan Prolanis yang sesuai ketentuan akun.</p>
                       </div>
                     ) : (
                       <div className="surface-panel rounded-[2rem] overflow-hidden">
                         <div className="bg-slate-50 px-6 py-5 border-b border-slate-200 flex items-center gap-3">
-                          <BarChart3 className="text-indigo-600 w-5 h-5"/> 
-                          <h3 className="font-extrabold text-slate-800">Pratinjau Rekapitulasi Terpadu</h3>
+                          <BarChart3 className="text-indigo-600 w-5 h-5"/> <h3 className="font-extrabold text-slate-800">Pratinjau Rekapitulasi Terpadu</h3>
                         </div>
                         <div className="overflow-x-auto max-h-[500px] relative">
                           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -552,7 +561,6 @@
                 )}
               </main>
 
-              {/* Loader Processing */}
               {isProcessing && (
                 <div className="fixed inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center text-slate-800">
                   <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200 flex flex-col items-center text-center">
