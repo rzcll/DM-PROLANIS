@@ -330,7 +330,8 @@
                     XLSX.utils.book_append_sheet(wb, wsDesa, key.substring(0, 31)); // Batas nama sheet maks 31 karakter
                 });
 
-                XLSX.writeFile(wb, `Rekap_Lab_SMART_DM.xlsx`);
+                // Perubahan Nama File Lab Disini
+                XLSX.writeFile(wb, `Hasil Lab Prolanis.xlsx`);
             } else {
                 const allRows = data.flatMap(f => f.data);
                 const groups = allRows.reduce((acc, row) => {
@@ -343,7 +344,8 @@
                     const ws = XLSX.utils.json_to_sheet(groups[key]);
                     XLSX.utils.book_append_sheet(wb, ws, key.substring(0, 31)); 
                 });
-                XLSX.writeFile(wb, `Rekap_Prolanis_SMART_DM.xlsx`);
+                // Perubahan Nama File Prolanis Disini
+                XLSX.writeFile(wb, `Peserta Prolanis Puskesmas ${activeUser}.xlsx`);
             }
           };
 
@@ -384,8 +386,8 @@
                       </div>
                     )}
 
-                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20">
-                      <LogIn size={18} /> Masuk ke Aplikasi
+                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20 hover:shadow-xl hover:-translate-y-1 transform duration-300 active:scale-95 group">
+                      <LogIn size={18} className="group-hover:translate-x-1 transition-transform duration-300" /> Masuk ke Aplikasi
                     </button>
                   </form>
                 </div>
@@ -424,9 +426,9 @@
                       <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)} 
-                        className={`flex items-center gap-2 px-3 md:px-5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow-md border border-slate-200' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                        className={`group flex items-center gap-2 px-3 md:px-5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all duration-500 transform ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow-lg border border-slate-200 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 hover:scale-105 hover:shadow-sm'}`}
                       >
-                        <tab.icon size={16} className={activeTab === tab.id ? 'text-indigo-600' : ''} /> 
+                        <tab.icon size={16} className={`transition-transform duration-500 ${activeTab === tab.id ? 'text-indigo-600 scale-110' : 'group-hover:scale-110'}`} /> 
                         <span className="hidden sm:inline">{tab.label}</span>
                       </button>
                     ))}
@@ -437,24 +439,24 @@
               <main className="max-w-7xl mx-auto px-6 pt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {activeTab === 'LAB' && (
                   <div className="max-w-3xl mx-auto space-y-6">
-                    <div className="surface-panel p-10 rounded-[2rem] text-center">
-                      <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100">
+                    <div className="surface-panel p-10 rounded-[2rem] text-center transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
+                      <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100 transition-transform duration-500 hover:scale-110 hover:rotate-3">
                         <Database className="w-10 h-10 text-indigo-600" />
                       </div>
                       <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Langkah 1: Upload Data Lab</h2>
                       <p className="text-slate-500 mb-10 text-sm leading-relaxed font-medium">Unggah folder laboratorium. Sistem otomatis mengeliminasi duplikat BPJS dan mencocokkan identitas file pada sel D3 dengan kata kunci nama akun Anda.</p>
                       
-                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50 transition-all duration-300 rounded-[2rem] p-12 cursor-pointer shadow-sm">
+                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50 transition-all duration-500 rounded-[2rem] p-12 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-2 transform">
                         <div className="flex flex-col items-center gap-5">
-                          <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                          <div className="bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg">Pilih Folder Lab</div>
+                          <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-indigo-500 group-hover:scale-125 transition-transform duration-500" />
+                          <div className="bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-md group-hover:shadow-xl group-hover:bg-indigo-700 transition-all duration-300 transform group-hover:-translate-y-1">Pilih Folder Lab</div>
                         </div>
                         <input type="file" multiple webkitdirectory="true" className="hidden" onChange={(e) => handleUpload(e, 'LAB')} />
                       </label>
                     </div>
 
                     {uploadErrors.length > 0 && (
-                      <div className="surface-panel p-6 rounded-2xl border-l-4 border-l-red-500 bg-red-50/30 space-y-2">
+                      <div className="surface-panel p-6 rounded-2xl border-l-4 border-l-red-500 bg-red-50/30 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                         <h4 className="font-extrabold text-red-700 flex items-center gap-2 text-sm">
                           <AlertCircle size={18} /> Berkas Gagal Diunggah:
                         </h4>
@@ -468,17 +470,17 @@
 
                 {activeTab === 'PROLANIS' && (
                   <div className="max-w-3xl mx-auto">
-                    <div className="surface-panel p-10 rounded-[2rem] text-center">
-                      <div className="bg-emerald-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
+                    <div className="surface-panel p-10 rounded-[2rem] text-center transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
+                      <div className="bg-emerald-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100 transition-transform duration-500 hover:scale-110 hover:rotate-3">
                         <Users className="w-10 h-10 text-emerald-600" />
                       </div>
                       <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Langkah 2: Upload Data Prolanis</h2>
                       <p className="text-slate-500 mb-10 text-sm leading-relaxed font-medium">Unggah folder Prolanis untuk memfilter data Lab (8 digit BPJS terakhir). Sistem juga menghapus duplikat data berdasarkan kolom NIK.</p>
                       
-                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-indigo-50 transition-all duration-300 rounded-[2rem] p-12 cursor-pointer shadow-sm">
+                      <label className="group relative block w-full border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50 transition-all duration-500 rounded-[2rem] p-12 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-2 transform">
                         <div className="flex flex-col items-center gap-5">
-                          <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                          <div className="bg-emerald-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg hover:bg-emerald-700 transition-colors">Pilih Folder Prolanis</div>
+                          <FolderOpen className="w-12 h-12 text-slate-400 group-hover:text-emerald-500 group-hover:scale-125 transition-transform duration-500" />
+                          <div className="bg-emerald-600 text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-md group-hover:shadow-xl hover:bg-emerald-700 transition-all duration-300 transform group-hover:-translate-y-1">Pilih Folder Prolanis</div>
                         </div>
                         <input type="file" multiple webkitdirectory="true" className="hidden" onChange={(e) => handleUpload(e, 'PROLANIS')} />
                       </label>
@@ -489,31 +491,31 @@
                 {activeTab === 'DASHBOARD' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5">
-                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200"><FileText className="w-7 h-7 text-slate-500" /></div>
+                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5 transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-default group">
+                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300 group-hover:scale-110 transform"><FileText className="w-7 h-7 text-slate-500 group-hover:text-slate-700 transition-colors" /></div>
                         <div>
                           <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Pasien Lab</p>
                           <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(labFilesData)}</p>
                         </div>
                       </div>
-                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5">
-                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200"><Users className="w-7 h-7 text-slate-500" /></div>
+                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5 transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-default group">
+                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300 group-hover:scale-110 transform"><Users className="w-7 h-7 text-slate-500 group-hover:text-slate-700 transition-colors" /></div>
                         <div>
                           <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Pasien Prolanis</p>
                           <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(prolanisFilesData)}</p>
                         </div>
                       </div>
-                      <div className="bg-white p-6 rounded-2xl border-2 border-indigo-100 shadow-xl flex items-center gap-5 relative overflow-hidden">
-                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                        <div className="bg-indigo-100 p-4 rounded-xl border border-indigo-200"><CheckCircle2 className="w-7 h-7 text-indigo-600" /></div>
-                        <div>
+                      <div className="bg-white p-6 rounded-2xl border-2 border-indigo-100 shadow-lg flex items-center gap-5 relative overflow-hidden transform transition-all duration-500 hover:shadow-2xl hover:border-indigo-300 hover:-translate-y-2 cursor-default group">
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-indigo-100 transition-colors duration-500"></div>
+                        <div className="bg-indigo-100 p-4 rounded-xl border border-indigo-200 group-hover:bg-indigo-200 transition-colors duration-300 group-hover:scale-110 transform z-10"><CheckCircle2 className="w-7 h-7 text-indigo-600" /></div>
+                        <div className="z-10">
                           <p className="text-sm font-bold text-indigo-600 uppercase tracking-wide">Data Tervalidasi</p>
                           <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(filteredLabData)}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="surface-panel p-6 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-6">
+                    <div className="surface-panel p-6 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-6 transform transition-all duration-500 hover:shadow-xl">
                       <div className="flex items-start gap-4">
                         <div className="bg-blue-50 p-2.5 rounded-xl shrink-0 border border-blue-100"><Info className="w-5 h-5 text-blue-600" /></div>
                         <p className="text-sm text-slate-600 leading-relaxed max-w-2xl font-medium">
@@ -521,23 +523,23 @@
                         </p>
                       </div>
                       <div className="flex gap-4 w-full lg:w-auto">
-                        <button onClick={() => downloadFile(filteredLabData, 'LAB')} disabled={filteredLabData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg whitespace-nowrap transition-all">
-                          <Download size={16} /> Unduh Rekap Lab
+                        <button onClick={() => downloadFile(filteredLabData, 'LAB')} disabled={filteredLabData.length === 0} className="group flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:hover:translate-y-0 disabled:hover:shadow-none text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 whitespace-nowrap transition-all duration-300 transform active:scale-95">
+                          <Download size={16} className="group-hover:-translate-y-1 transition-transform duration-300" /> Unduh Rekap Lab
                         </button>
-                        <button onClick={() => downloadFile(prolanisFilesData, 'PROLANIS')} disabled={prolanisFilesData.length === 0} className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg whitespace-nowrap transition-all">
-                          <Download size={16} /> Unduh Prolanis
+                        <button onClick={() => downloadFile(prolanisFilesData, 'PROLANIS')} disabled={prolanisFilesData.length === 0} className="group flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:hover:translate-y-0 disabled:hover:shadow-none text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 whitespace-nowrap transition-all duration-300 transform active:scale-95">
+                          <Download size={16} className="group-hover:-translate-y-1 transition-transform duration-300" /> Unduh Prolanis
                         </button>
                       </div>
                     </div>
 
                     {filteredLabData.length === 0 ? (
-                      <div className="surface-panel py-24 flex flex-col items-center justify-center text-center rounded-[2rem]">
-                        <div className="bg-slate-100 p-6 rounded-full mb-6"><AlertCircle className="w-12 h-12 text-slate-400" /></div>
+                      <div className="surface-panel py-24 flex flex-col items-center justify-center text-center rounded-[2rem] transform transition-all duration-500 hover:shadow-xl hover:-translate-y-1">
+                        <div className="bg-slate-100 p-6 rounded-full mb-6 transition-transform duration-500 hover:scale-110 hover:rotate-6"><AlertCircle className="w-12 h-12 text-slate-400" /></div>
                         <h3 className="text-xl font-extrabold text-slate-800 mb-2">Belum Ada Data Tersedia</h3>
                         <p className="text-slate-500 text-sm font-medium">Pastikan Anda telah mengunggah file Lab dan Prolanis yang sesuai ketentuan akun.</p>
                       </div>
                     ) : (
-                      <div className="surface-panel rounded-[2rem] overflow-hidden">
+                      <div className="surface-panel rounded-[2rem] overflow-hidden transform transition-all duration-500 hover:shadow-2xl">
                         <div className="bg-slate-50 px-6 py-5 border-b border-slate-200 flex items-center gap-3">
                           <BarChart3 className="text-indigo-600 w-5 h-5"/> <h3 className="font-extrabold text-slate-800">Pratinjau Rekapitulasi Terpadu</h3>
                         </div>
