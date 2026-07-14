@@ -334,12 +334,32 @@
                 XLSX.writeFile(wb, `Hasil Lab Prolanis.xlsx`);
             } else {
                 const allRows = data.flatMap(f => f.data);
-                const groups = allRows.reduce((acc, row) => {
+                
+                // === PROSES DEDUPLIKASI BERDASARKAN NIK ===
+                const uniqueRows = [];
+                const seenNik = new Set();
+
+                allRows.forEach(row => {
+                    const nik = row['NIK'] ? String(row['NIK']).trim() : "";
+                    if (nik) {
+                        if (!seenNik.has(nik)) {
+                            seenNik.add(nik);
+                            uniqueRows.push(row);
+                        }
+                    } else {
+                        // Jika kebetulan tidak ada NIK, tetap dimasukkan agar data tidak hilang
+                        uniqueRows.push(row);
+                    }
+                });
+                // ===========================================
+
+                const groups = uniqueRows.reduce((acc, row) => {
                     const key = row['Kelurahan'] ? String(row['Kelurahan']) : "Tanpa_Kelurahan";
                     if (!acc[key]) acc[key] = [];
                     acc[key].push(row);
                     return acc;
                 }, {});
+                
                 Object.keys(groups).forEach(key => {
                     const ws = XLSX.utils.json_to_sheet(groups[key]);
                     XLSX.utils.book_append_sheet(wb, ws, key.substring(0, 31)); 
@@ -350,6 +370,24 @@
           };
 
           const getTotalRows = (dataArray) => dataArray.reduce((acc, file) => acc + file.data.length, 0);
+
+          const getUniqueProlanisCount = (dataArray) => {
+            const allRows = dataArray.flatMap(f => f.data);
+            const seenNik = new Set();
+            let count = 0;
+            allRows.forEach(row => {
+                const nik = row['NIK'] ? String(row['NIK']).trim() : "";
+                if (nik) {
+                    if (!seenNik.has(nik)) {
+                        seenNik.add(nik);
+                        count++;
+                    }
+                } else {
+                    count++; // Menghitung baris tanpa NIK sebagai data tersendiri agar tidak hilang
+                }
+            });
+            return count;
+          };
 
           if (!isLoggedIn) {
             return (
@@ -489,33 +527,70 @@
                 )}
 
                 {activeTab === 'DASHBOARD' && (
-                  <div className="space-y-6">
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5 transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-default group">
-                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300 group-hover:scale-110 transform"><FileText className="w-7 h-7 text-slate-500 group-hover:text-slate-700 transition-colors" /></div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Pasien Lab</p>
-                          <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(labFilesData)}</p>
+                      
+                      {/* Card 1: Total Data Lab */}
+                      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                        <div className="absolute -right-6 -top-6 p-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500 text-blue-600">
+                            <Database size={160} />
+                        </div>
+                        <div className="relative z-10 flex flex-col gap-5">
+                          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm border border-blue-100 group-hover:scale-110 transition-transform duration-300">
+                            <FileText size={28} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Data Lab</p>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-slate-800 tracking-tight">{getTotalRows(labFilesData)}</span>
+                              <span className="text-xs font-bold text-slate-400">Baris</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="surface-panel p-6 rounded-2xl flex items-center gap-5 transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-default group">
-                        <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300 group-hover:scale-110 transform"><Users className="w-7 h-7 text-slate-500 group-hover:text-slate-700 transition-colors" /></div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Pasien Prolanis</p>
-                          <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(prolanisFilesData)}</p>
+
+                      {/* Card 2: Total Prolanis (Unik/Terfilter) */}
+                      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                        <div className="absolute -right-6 -top-6 p-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500 text-emerald-600">
+                            <Users size={160} />
+                        </div>
+                        <div className="relative z-10 flex flex-col gap-5">
+                          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm border border-emerald-100 group-hover:scale-110 transition-transform duration-300">
+                            <Activity size={28} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Pasien Prolanis</p>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-slate-800 tracking-tight">{getUniqueProlanisCount(prolanisFilesData)}</span>
+                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/80 px-2.5 py-1 rounded-full uppercase tracking-wider">Tervalidasi Unik</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="bg-white p-6 rounded-2xl border-2 border-indigo-100 shadow-lg flex items-center gap-5 relative overflow-hidden transform transition-all duration-500 hover:shadow-2xl hover:border-indigo-300 hover:-translate-y-2 cursor-default group">
-                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-indigo-100 transition-colors duration-500"></div>
-                        <div className="bg-indigo-100 p-4 rounded-xl border border-indigo-200 group-hover:bg-indigo-200 transition-colors duration-300 group-hover:scale-110 transform z-10"><CheckCircle2 className="w-7 h-7 text-indigo-600" /></div>
-                        <div className="z-10">
-                          <p className="text-sm font-bold text-indigo-600 uppercase tracking-wide">Data Tervalidasi</p>
-                          <p className="text-3xl font-black text-slate-800 mt-1">{getTotalRows(filteredLabData)}</p>
+
+                      {/* Card 3: Hasil Akhir Terfilter */}
+                      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-[2rem] shadow-2xl shadow-indigo-600/40 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 text-white">
+                        <div className="absolute -right-6 -top-6 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 text-white">
+                            <CheckCircle2 size={160} />
+                        </div>
+                        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                        <div className="relative z-10 flex flex-col gap-5">
+                          <div className="w-14 h-14 bg-white/20 text-white rounded-2xl flex items-center justify-center shadow-inner backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                            <CheckCircle2 size={28} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-1">Data Tervalidasi</p>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-white tracking-tight">{getTotalRows(filteredLabData)}</span>
+                              <span className="text-[10px] font-bold text-indigo-100 bg-white/20 px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm">Cocok</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
+
                     </div>
 
-                    <div className="surface-panel p-6 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-6 transform transition-all duration-500 hover:shadow-xl">
+                    <div className="surface-panel p-8 rounded-[2rem] flex flex-col lg:flex-row items-center justify-between gap-6 transform transition-all duration-500 hover:shadow-xl">
                       <div className="flex items-start gap-4">
                         <div className="bg-blue-50 p-2.5 rounded-xl shrink-0 border border-blue-100"><Info className="w-5 h-5 text-blue-600" /></div>
                         <p className="text-sm text-slate-600 leading-relaxed max-w-2xl font-medium">
